@@ -135,10 +135,10 @@ ibm-sfg-prod:
           nodePort: 30003
           protocol: TCP
       extraPorts: 
-        -name: http-1
-        port: 46000
-        targetPort: http
-        nodePort: 30100
+        -name: lwlw-soap
+        port: 5580
+        targetPort: 5580
+        nodePort: 30005
         protocol: TCP
     backendService:
   #    type: NodePort
