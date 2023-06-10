@@ -36,7 +36,7 @@ ibm-sfg-prod:
     fsGroup: 1010
     runAsUser: 1010
   dataSetup:
-    enabled: true
+    enabled: false
     upgrade: false
   env:
     tz: "UTC"
@@ -64,7 +64,7 @@ ibm-sfg-prod:
     dbPort: 50000
     dbData: B2BIDB
     dbDrivers: db2jcc4.jar
-    dbCreateSchema: true
+    dbCreateSchema: false
     # Name of DB secret
     dbSecret: b2b-db-secret
     #Provide the admin email address
@@ -134,12 +134,12 @@ ibm-sfg-prod:
           targetPort: soassl
           nodePort: 30003
           protocol: TCP
-      extraPorts: []
-        #-name: http-1
-        # port: 46000
-        # targetPort: http
-        # nodePort: 30100
-        # protocol: TCP
+      extraPorts: 
+        -name: http-1
+        port: 46000
+        targetPort: http
+        nodePort: 30100
+        protocol: TCP
     backendService:
   #    type: NodePort
       type: ClusterIP
