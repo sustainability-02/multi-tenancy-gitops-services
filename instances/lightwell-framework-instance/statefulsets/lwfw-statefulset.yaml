@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: lwfw
-          image: image-registry.openshift-image-registry.svc:5000/b2bi-prod/lw-2.13
+          image: image-registry.openshift-image-registry.svc:5000/b2bi-prod/lw-2.13@sha256:3892fb426d893e6c4c5046c2b1a4a76a3e48da40fb8bdda38353885cc511e437
           # command: [ "/bin/bash", "-c", "--" ]
           # args: [ "while true; do sleep 30; done;" ]
           ports:
