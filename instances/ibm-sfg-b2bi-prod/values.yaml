@@ -102,7 +102,7 @@ ibm-sfg-prod:
         memory: 4Gi
 
     autoscaling:
-      enabled: true
+      enabled: false
       minReplicas: 2
       maxReplicas: 4
       targetCPUUtilizationPercentage: 60
@@ -152,7 +152,7 @@ ibm-sfg-prod:
       # - name: sftp-adapter
       #   port: 30202
       #   targetPort: 30202
-      #   nodePort: 30202
+      #   nodePort: 30201
       #   protocol: TCP
       portRanges:
         - name: adapters
