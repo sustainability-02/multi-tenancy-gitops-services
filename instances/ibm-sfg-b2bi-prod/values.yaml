@@ -149,6 +149,11 @@ ibm-sfg-prod:
         targetPort: 30201
         nodePort: 30201
         protocol: TCP
+      - name: sftp-ports
+        port: 30202
+        targetPort: 30202
+        nodePort: 30202
+        protocol: TCP
       portRanges:
         - name: adapters
           portRange: 30301-30305
