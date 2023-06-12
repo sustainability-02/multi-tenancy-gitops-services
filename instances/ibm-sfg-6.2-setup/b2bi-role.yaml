@@ -1,0 +1,15 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "250"
+  name: ibm-b2bi-role-b2bi-prod
+  namespace: b2bi-prod
+rules:
+  - apiGroups: ['route.openshift.io']
+    resources: ['routes','routes/custom-host']
+    verbs: ['get', 'watch', 'list', 'patch', 'update']
+  - apiGroups: ['','batch']
+    resources: ['secrets','configmaps','persistentvolumes','persistentvolumeclaims','pods','services','cronjobs','jobs']
+    verbs: ['create', 'get', 'list', 'delete', 'patch', 'update']
+  

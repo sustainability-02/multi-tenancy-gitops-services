@@ -1,7 +1,0 @@
-global: {}
-
-ibm-common-services-instance:
-  ibmcommonservices:
-    name: common-service
-    spec:
-      size: small
