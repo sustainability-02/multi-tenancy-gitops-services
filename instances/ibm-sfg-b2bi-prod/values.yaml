@@ -91,7 +91,7 @@ ibm-sfg-prod:
     #SANDBOX_WEBAPP_PROTOCOL: https
     #SANDBOX_WEBAPP_LIST_PORT: 5001
   asi:
-    replicaCount: 2
+    replicaCount: 1
 
     resources:
       limits:
@@ -134,12 +134,12 @@ ibm-sfg-prod:
           targetPort: soassl
           nodePort: 30003
           protocol: TCP
-      extraPorts: 
-        -name: lwlw-soap
-        port: 5580
-        targetPort: 5580
-        nodePort: 30005
-        protocol: TCP
+      extraPorts: []
+        #-name: http-1
+        # port: 46000
+        # targetPort: http
+        # nodePort: 30100
+        # protocol: TCP
     backendService:
   #    type: NodePort
       type: ClusterIP
@@ -149,11 +149,6 @@ ibm-sfg-prod:
         targetPort: 30201
         nodePort: 30201
         protocol: TCP
-      # - name: sftp-adapter
-      #   port: 30202
-      #   targetPort: 30202
-      #   nodePort: 30201
-      #   protocol: TCP
       portRanges:
         - name: adapters
           portRange: 30301-30305
