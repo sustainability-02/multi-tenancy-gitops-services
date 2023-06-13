@@ -61,7 +61,7 @@ INGRESS_INTERNAL_HOST_API="api-${NS}."$(oc get ingress.config.openshift.io clust
 # RWX_STORAGECLASS=${RWX_STORAGECLASS:-"ibmc-file-gold"}
 
 # Create Kubernetes yaml
-( echo "cat <<EOF" ; cat ibm-sfg-b2bi-overrides-values.yaml_template ;) | \
+( echo "cat <<EOF" ; cat b2bi-overrides-values.yaml_template ;) | \
 SFG_REPO=${SFG_REPO} \
 SFG_TAG=${SFG_TAG} \
 SFG_DIGEST=${SFG_DIGEST} \
