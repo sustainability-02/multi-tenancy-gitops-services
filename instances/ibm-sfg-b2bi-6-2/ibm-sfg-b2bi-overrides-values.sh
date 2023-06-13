@@ -2,6 +2,12 @@
 # Set enviroment variables
 # Declaring IBM SFG PROD
 
+# SFG_REPO=SFG_REPO \
+# SFG_TAG=SFG_TAG SFG_DIGEST=SFG_DIGEST \
+# DB_REPO=DB_REPO DB_TAG=DB_TAG DB_DIGEST=DB_DIGEST \
+# ./ibm-sfg-b2bi-overrides-values.sh
+
+
 NS="b2bi-6-2"
 if [[ -z ${SFG_REPO} ]]; then
   echo "Please provide environment variable SFG_REPO"
