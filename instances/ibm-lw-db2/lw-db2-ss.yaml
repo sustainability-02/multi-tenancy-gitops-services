@@ -17,7 +17,7 @@ spec:
     spec:
       securityContext:
         privileged: true
-      serviceAccountName: b2bi
+      serviceAccountName: db2
       containers:
         - name: ibm-lw-db2
           securityContext:
