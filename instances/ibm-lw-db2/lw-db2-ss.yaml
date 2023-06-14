@@ -1,17 +1,24 @@
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: ibm-lw-db2
+  name: ibm-sfg-db2
   namespace: b2bi-prod
+  labels:
+    app: ibm-sfg-db2
+    app.kubernetes.io/component: ibm-sfg-db2
+    app.kubernetes.io/instance: ibm-sfg-db2
+    app.kubernetes.io/name: ibm-sfg-db2
+    app.kubernetes.io/part-of: ibm-sfg-db2
+    app.openshift.io/runtime-namespace: b2bi-prod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ibm-lw-db2
+      app: ibm-sfg-db2
   template:
     metadata:
       labels:
-        app: ibm-lw-db2
+        app: ibm-sfg-db2
       annotations:
         openshift.io/generated-by: OpenShiftWebConsole
     spec:
@@ -19,7 +26,7 @@ spec:
         privileged: true
       serviceAccountName: db2
       containers:
-        - name: ibm-lw-db2
+        - name: ibm-sfg-db2
           securityContext:
             privileged: true
           image: quay.io/lightwell/lightwell-db2:1.0.2
@@ -39,15 +46,15 @@ spec:
             - containerPort: 60007
               protocol: TCP
           volumeMounts:
-            - name: ibm-lw-db2-1
+            - name: ibm-sfg-db2-1
               mountPath: /database
-            - name: ibm-lw-db2-2
+            - name: ibm-sfg-db2-2
               mountPath: /hadr
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
   volumeClaimTemplates:
     - metadata:
-        name: ibm-lw-db2-1
+        name: ibm-sfg-db2-1
       spec:
         accessModes: [ "ReadWriteOnce" ]
         storageClassName: "ibmc-file-gold-gid"
@@ -55,7 +62,7 @@ spec:
           requests:
             storage: 1Gi
     - metadata:
-        name: ibm-lw-db2-2
+        name: ibm-sfg-db2-2
       spec:
         accessModes: [ "ReadWriteOnce" ]
         storageClassName: "ibmc-file-gold-gid"
