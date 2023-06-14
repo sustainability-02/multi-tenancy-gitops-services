@@ -1,2 +1,2 @@
 resources:
-- ./db2-deployment-setup.yaml
+- ./db2-ss-setup.yaml
