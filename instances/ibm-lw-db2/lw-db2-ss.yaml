@@ -22,8 +22,9 @@ spec:
       annotations:
         openshift.io/generated-by: OpenShiftWebConsole
     spec:
-      securityContext:
-        privileged: true
+      # securityContext:
+      #   privileged: true
+      serviceName: lw-db2
       serviceAccountName: db2
       containers:
         - name: ibm-sfg-db2
@@ -69,12 +70,12 @@ spec:
         resources:
           requests:
             storage: 1Gi
-      restartPolicy: Always
-      dnsPolicy: ClusterFirst
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 25%
-      maxSurge: 25%
+      # restartPolicy: Always
+      # dnsPolicy: ClusterFirst
+  # strategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     maxUnavailable: 25%
+  #     maxSurge: 25%
   revisionHistoryLimit: 10
-  progressDeadlineSeconds: 600
+  # progressDeadlineSeconds: 600
