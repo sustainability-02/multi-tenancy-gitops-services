@@ -11,6 +11,7 @@ metadata:
     app.kubernetes.io/part-of: ibm-sfg-db2
     app.openshift.io/runtime-namespace: b2bi-prod
 spec:
+  serviceName: lw-db2
   replicas: 1
   selector:
     matchLabels:
@@ -24,7 +25,6 @@ spec:
     spec:
       # securityContext:
       #   privileged: true
-      serviceName: lw-db2
       serviceAccountName: db2
       containers:
         - name: ibm-sfg-db2
