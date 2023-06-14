@@ -1,2 +1,2 @@
 resources:
-- ./db2-ss-setup.yaml
+- ./lw-db2-ss.yaml
