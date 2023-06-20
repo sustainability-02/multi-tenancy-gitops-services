@@ -1,0 +1,71 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{ if .Values.global.install.itxaUI.enabled -}}
+{{ if and (.Values.itxauiserver.ingress.enabled) (gt .Values.itxauiserver.replicaCount 0.0) -}}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+{{- $autoIngressSecret := include "itxa-chart.auto-ingress-secret" . -}}
+{{- $contextList := .Values.itxauiserver.ingress.contextRoots | default (list "spe") -}}
+{{- $varSslEnabled := .Values.itxauiserver.ingress.ssl.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ template "itxa-chart.fullname" . }}-itxaingress
+  annotations:
+    {{- if (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+    haproxy.router.openshift.io/timeout: {{ .Values.itxauiserver.ingress.routeTimeout | default "1h" }}
+    {{- else }}
+    {{- if eq .Values.itxauiserver.ingress.controller "nginx" }}
+    nginx.org/proxy-connect-timeout: {{ .Values.global.nginxTimeout | default "15m" }}
+    nginx.org/proxy-read-timeout: {{ .Values.global.nginxTimeout | default "15m" }}
+    {{- end }}
+    {{- end }}
+    ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    {{- if eq .Values.itxauiserver.ingress.controller "nginx" }}
+    nginx.ingress.kubernetes.io/secure-backends: "false"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    {{- end }}
+    ingress.kubernetes.io/secure-backends: "false"
+    ingress.kubernetes.io/backend-protocol: "HTTP"
+    ingress.kubernetes.io/affinity: "cookie"
+    ingress.kubernetes.io/session-cookie-name: "route"
+    ingress.kubernetes.io/session-cookie-hash: "sha1"
+    {{- if .Values.itxauiserver.ingress.annotations }}
+    {{- range $key, $value := .Values.itxauiserver.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    {{- end }}
+  labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 4 }}
+spec:
+  {{- if and $varSslEnabled .Values.itxauiserver.ingress.host }}
+  tls:
+  - hosts:
+    - {{ .Values.itxauiserver.ingress.host }}
+    secretName: {{ .Values.itxauiserver.ingress.ssl.secretname | default $autoIngressSecret }}
+  {{- end }}
+  rules:
+  - host: {{ .Values.itxauiserver.ingress.host }}
+    http:
+      paths:
+{{- $varRoot := .}}
+{{- range $contextList }}
+{{- $ctxRoot := .}}
+{{- if $ctxRoot }}
+      - path: {{printf "/%s/" $ctxRoot | quote }}
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ template "itxa-chart.fullname" $varRoot }}-itxauiserver
+            port:
+                number: {{ $varRoot.Values.itxauiserver.service.http.port | default 9080 }}
+{{- end }}
+{{- end }}
+{{ end -}}
+{{ end -}}

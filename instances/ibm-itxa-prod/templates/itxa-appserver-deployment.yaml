@@ -1,0 +1,260 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{- include "itxa-chart.userSecretValidate" . | required "User Secret must be created before installing the application" }}
+{{ if .Values.global.install.itxaUI.enabled -}}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+{{- $httpPort := .Values.itxauiserver.service.http.port | default 9080 }}
+{{- $httpsPort := .Values.itxauiserver.service.https.port | default 9443 }}
+{{- $readyProbePeriod := .Values.itxauiserver.readyProbePeriod | default 30 }}
+{{- $readinessProbeInitialDelaySeconds := .Values.itxauiserver.readinessProbeInitialDelaySeconds | default 60 }}
+{{- $readinessProbeTimeoutSeconds := .Values.itxauiserver.readinessProbeTimeoutSeconds | default 10 }}
+{{- $libertyStartupWrapper := .Values.itxauiserver.config.libertyStartupWrapper }}
+{{- $liveProbeBeginDelay := .Values.itxauiserver.livenessCheckBeginAfterSeconds | default 60 }}
+{{- $liveProbePeriod := .Values.itxauiserver.liveProbePeriod | default 15 }}
+{{- $liveFailRestartSeconds := (mul .Values.itxauiserver.livenessFailRestartAfterMinutes 30) | default 300 }}
+{{- $liveFailThreshold := div $liveFailRestartSeconds $liveProbePeriod }}
+{{- $livenessProbeTimeoutSeconds := .Values.itxauiserver.livenessProbeTimeoutSeconds | default 60 }}
+{{- $stdPodLabel := "role" }}
+{{- $stdPodLabelVal := "itxauiserver" }}
+{{- $custLabels := .Values.itxauiserver.podLabels | default (dict) }}
+{{- $varSslEnabled := .Values.itxauiserver.ingress.ssl.enabled }}
+{{- $readinessProbePath := .Values.itxauiserver.readinessProbePath }}
+{{- $secureDBConnection := .Values.global.secureDBConnection.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "itxa-chart.fullname" . }}-itxauiserver
+  labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 4 }}
+spec:
+  replicas: {{ .Values.itxauiserver.replicaCount }}
+  selector:
+    matchLabels:
+{{ include "sch.metadata.labels.standard" (list . "" (set $custLabels $stdPodLabel $stdPodLabelVal)) | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "sch.metadata.labels.standard" (list . "" (set $custLabels $stdPodLabel $stdPodLabelVal)) | indent 8 }}
+      annotations:
+{{- include "sch.metadata.annotations.metering" (list . .sch.chart.metering "" "" nil) | indent 8 }}
+    spec:
+{{- with .Values.itxauiserver.tolerations }}
+      tolerations:
+{{ toYaml . | indent 6 }}
+{{- end }}
+      affinity:
+{{- include "itxa-chart.nodeAffinity" (list . .Values.itxauiserver.nodeAffinity) | indent 8 }}
+{{- include "itxa-chart.podAffinity" (list . .Values.itxauiserver.podAffinity) | indent 8 }}
+{{- include "itxa-chart.podAntiAffinity" (list . .Values.itxauiserver.podAntiAffinity $stdPodLabel $stdPodLabelVal) | indent 8 }}
+      serviceAccountName: {{ .Values.global.serviceAccountName | default "default" }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+        runAsUser: {{ .Values.itxauiserver.runAsUser }}
+        fsGroup: {{ .Values.global.persistence.securityContext.fsGroup | default 0 }}
+        {{- else }}
+        supplementalGroups: [{{ .Values.global.persistence.securityContext.supplementalGroup | default 0 }}]
+        {{- end }}
+      {{- if .Values.global.image.pullsecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.image.pullsecret }}
+      {{- end }}
+      {{- if and (.Values.itxadatasetup.loadFactoryData) (eq .Values.itxadatasetup.loadFactoryData "install") }}
+      initContainers:
+      - name: {{ template "itxa-chart.fullname" . }}-itxauiserver-init
+        image: >-
+            {{- if .Values.itxauiserver.image.digest }}
+            {{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxauiserver.image.name }}@{{ .Values.itxauiserver.image.digest }}
+            {{- else }}
+            {{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxauiserver.image.name }}:{{ .Values.itxauiserver.image.tag }}
+            {{- end }}
+        securityContext:
+          privileged: false
+          {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+          runAsUser: {{ .Values.itxauiserver.runAsUser }}
+          {{- end }}
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command: ['/bin/bash', '-c']
+        args:
+        - 'while [ -z $(find /logs -name itxadatasetup.complete) ]; do echo "datasetup not complete $(date +%Y-%m-%d.%H.%M.%S)"; sleep 30; done; echo "datasetup found complete $(date +%Y-%m-%d.%H.%M.%S)"'
+        resources:
+{{ toYaml .Values.itxauiserver.resources | indent 10 }}        
+        volumeMounts:
+        - name: {{ .Values.global.persistence.claims.name }}-common
+          mountPath: "/logs"
+      {{- end }}
+      containers:
+      - name: {{ template "itxa-chart.fullname" . }}-itxauiserver
+        image: >-
+            {{- if .Values.itxauiserver.image.digest }}
+            {{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxauiserver.image.name }}@{{ .Values.itxauiserver.image.digest }}
+            {{- else }}
+            {{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxauiserver.image.name }}:{{ .Values.itxauiserver.image.tag }}
+            {{- end }}
+        imagePullPolicy: {{ .Values.itxauiserver.image.pullPolicy }}
+        securityContext:
+          privileged: false
+          {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+          runAsUser: {{ .Values.itxauiserver.runAsUser }}
+          {{- end }}
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL          
+        command: ["/bin/bash", "-c"]
+        args: 
+        - "/opt/IBM/spe/bin/update_dtx_ini.sh && . /opt/IBM/spe/bin/spesetup.sh && ls -lrt /config && /config/processcerts.sh importCertInLiberty && /config/itxaupdateconfigs.sh && {{ $libertyStartupWrapper }} /opt/ibm/wlp/bin/server run defaultServer"
+        resources:
+{{ toYaml .Values.itxauiserver.resources | indent 10 }}
+        envFrom:
+        - configMapRef:
+            name: itxa-config
+        - secretRef:
+            name: {{ .Values.global.appSecret }}
+            {{- if and $varSslEnabled .Values.itxauiserver.ingress.host }}
+        - secretRef:
+            name: {{ .Values.global.tlskeystoresecret }}
+            {{- end }}
+            {{- if .Values.itxauiserver.userSecret }}
+        - secretRef:
+            name: {{ .Values.itxauiserver.userSecret }}
+            {{- end }}
+        env:
+        - name: APP_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP       
+        ports:
+        - name: https
+          containerPort: {{ $httpsPort }}
+          protocol: TCP
+        - name: http
+          containerPort: {{ $httpPort }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: {{ $readinessProbePath}}
+            port: {{ $httpPort }}
+            scheme: HTTP
+          {{- /* give some buffer time to the appserver startup */}}
+          initialDelaySeconds: {{ $liveProbeBeginDelay }}
+          {{- /* check for liveness every minute */}}
+          periodSeconds: {{ $liveProbePeriod }}
+          {{- /* A successful http probe must return in less than 1 seconds */}}
+          timeoutSeconds: {{ $livenessProbeTimeoutSeconds }}
+          {{- /* once probing begins keep trying. e.g with 1 min period and 10 tries, restart pod after 10 minutes */}}
+          failureThreshold: {{ $liveFailThreshold }}
+        readinessProbe:
+          httpGet:
+            path: {{ $readinessProbePath}}
+            port: {{ $httpPort }}
+            scheme: HTTP
+          {{- /* wait for some time (1 mins) before beginning to probe readiness */}}
+          initialDelaySeconds: {{ $readinessProbeInitialDelaySeconds }}
+          {{- /* check for readiness every n seconds */}}
+          periodSeconds: {{ $readyProbePeriod  }}
+          {{- /* A successful http probe must return in less than 1 seconds */}}
+          timeoutSeconds: {{ $readinessProbeTimeoutSeconds }}
+          {{- /* keeping max attempts in sync with liveness probe. E.g. if liveness probe starts after 10 minutes
+               and takes another 10 minutes to restart pod. keep trying till approx 20 minutes */}}
+          failureThreshold: {{ $liveFailThreshold }}
+        volumeMounts:
+        - name: config
+          mountPath: "/home/default/jvm.options"
+          subPath: jvm.options
+        - name: config
+          mountPath: "/home/default/server1.xml"
+          subPath: itxa-ui-server.xml
+        - name: config
+          mountPath: "/home/default/dbprops.cfg"
+          subPath: dbprops.cfg
+        - name: config
+          mountPath: "/home/default/uiconfig.properties"
+          subPath: uiconfig.properties
+        - name: config
+          mountPath: "/home/default/customer_overrides.properties"
+          subPath: customer_overrides.properties
+        - name: config
+          mountPath: "/home/default/packs.properties"
+          subPath: packs.properties
+        - name: config
+          mountPath: "/home/default/packs.xml"
+          subPath: packs.xml
+        - name: config
+          mountPath: "/config/apps/spe.war/WEB-INF/web.xml"
+          subPath: web.xml
+          {{- if and $varSslEnabled .Values.itxauiserver.ingress.host }}
+        - name: selfcert
+          mountPath: "/config/security/self"
+          readOnly: true
+          {{- end}}
+          {{- if .Values.itxauiserver.importcert.secretname }}
+        - name: importcert
+          mountPath: "/config/security/importedcert"
+          readOnly: true
+          {{- end}}
+          {{ if and $secureDBConnection .Values.global.secureDBConnection.dbservercertsecretname }}
+        - name: importdbservercert
+          mountPath: "/config/security/importeddbservercert"
+          readOnly: true
+          {{- end}}
+        - name: {{ .Values.global.persistence.claims.name }}-common
+          mountPath: /logs   
+      volumes:
+      - name: config
+        configMap:
+          name: itxa-config
+          items:
+          - key: jvm.options
+            path: jvm.options
+          - key: itxa-ui-server.xml
+            path: itxa-ui-server.xml
+            mode: 0754
+          - key: dbprops.cfg
+            path: dbprops.cfg
+            mode: 0754
+          - key: uiconfig.properties
+            path: uiconfig.properties
+            mode: 0754
+          - key: customer_overrides.properties
+            path: customer_overrides.properties
+            mode: 0754
+          - key: packs.properties
+            path: packs.properties
+            mode: 0754
+          - key: packs.xml
+            path: packs.xml
+            mode: 0754
+          - key: web.xml
+            path: web.xml
+            mode: 0754
+          {{- if and $varSslEnabled .Values.itxauiserver.ingress.host }}
+      - name: selfcert
+        secret:
+          secretName: {{ .Values.itxauiserver.ingress.ssl.secretname }}
+          {{- end }}
+          {{- if .Values.itxauiserver.importcert.secretname }}
+      - name: importcert
+        secret:
+          secretName: {{ .Values.itxauiserver.importcert.secretname }}
+          {{- end }}
+          {{- if and $secureDBConnection .Values.global.secureDBConnection.dbservercertsecretname }}
+      - name: importdbservercert
+        secret:
+          secretName: {{ .Values.global.secureDBConnection.dbservercertsecretname }}
+          {{- end }}  
+      - name: {{ .Values.global.persistence.claims.name }}-common
+        persistentVolumeClaim:
+          claimName: {{ .Values.global.persistence.claims.name  | lower }}    
+    {{ end -}}

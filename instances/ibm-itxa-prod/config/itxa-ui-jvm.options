@@ -1,0 +1,18 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+#Helm ITXA installation directory
+-DSPE_INSTALL_DIR=/opt/IBM/spe
+#-D10x.logDebugMessagesToStandardOut=true
+#-D10x.printStackTracesToStandardErr=true
+-DSystemStatusInstanceName=SPEUI
+-Dcom.ibm.jsse2.overrideDefaultTLS=true
+-Dcom.ibm.jsse2.overrideDefaultProtocol=TLSv12
+-Djavax.net.ssl.trustStore=/home/default/trustStore.p12
+-Djavax.net.ssl.trustStoreType=PKCS12
+-Djavax.net.ssl.keyStore=/opt/ibm/wlp/output/defaultServer/resources/security/key.p12
+-Djavax.net.ssl.keyStoreType=PKCS12
+-Xms{{ .Values.itxauiserver.config.jvm.xms }}
+-Xmx{{ .Values.itxauiserver.config.jvm.xmx }}

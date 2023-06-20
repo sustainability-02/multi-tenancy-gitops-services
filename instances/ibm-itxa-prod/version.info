@@ -1,0 +1,10 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+prodname="IBM Transformation Extender Advanced Certified Container"
+prodid="ce7ff97070944e7a9888f0cd932df5d3"
+prodversion="10.0.1"
+prodmetric="VIRTUAL_PROCESSOR_CORE"
+prodchargedcontainers="All"

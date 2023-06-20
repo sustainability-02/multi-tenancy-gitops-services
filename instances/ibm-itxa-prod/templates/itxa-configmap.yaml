@@ -1,0 +1,40 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{ if or .Values.global.install.itxaUI.enabled .Values.global.install.itxadbinit.enabled -}}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: itxa-config
+  labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 4 }}
+  annotations:
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook": pre-install,pre-upgrade
+data:
+  jvm.options: |-
+{{ (tpl (.Files.Get "config/itxa-ui-jvm.options") . ) | indent 4 }}
+  itxa-ui-server.xml: |-
+{{ (tpl (.Files.Get "config/itxa-ui-server.xml") . ) | indent 4 }}
+  dbprops.cfg: |-
+{{ (tpl (.Files.Get "config/dbprops.cfg") . ) | indent 4 }}
+  uiconfig.properties: |-
+{{ (tpl (.Files.Get "config/uiconfig.properties") . ) | indent 4 }}
+  customer_overrides.properties: |-
+{{ (tpl (.Files.Get "config/customer_overrides.properties") . ) | indent 4 }}
+  packs.properties: |-
+{{ (tpl (.Files.Get "config/packs.properties") . ) | indent 4 }}
+  packs.xml: |-
+{{ (tpl (.Files.Get "config/packs.xml") . ) | indent 4 }}
+  web.xml: |-
+{{ (tpl (.Files.Get "config/web.xml") . ) | indent 4 }}
+  httpPort: {{ .Values.itxauiserver.service.http.port | default 9081 | quote }}
+  httpsPort: {{ .Values.itxauiserver.service.https.port | default 9444 | quote }}
+  dbType: {{ .Values.global.database.dbvendor | default "" | quote }}
+  s3host: {{ .Values.global.database.s3host | default "" | quote }}
+  s3bucket: {{ .Values.global.database.s3bucket | default "" | quote }}
+  jdbcJar: {{ .Values.global.database.s3objectkey | default "" | quote }}
+{{ end -}}

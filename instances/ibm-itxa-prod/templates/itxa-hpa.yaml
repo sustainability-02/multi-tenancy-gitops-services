@@ -1,0 +1,22 @@
+# Licensed Materials - Property of IBM
+# IBM Order Management Software (5725-D10)
+# (C) Copyright IBM Corp. 2018, 2020 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{ if .Values.global.autoscaling.enabled -}}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ template "itxa-chart.fullname" . }}-itxa-hpa
+  labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 4 }} 
+spec:
+  maxReplicas: {{ .Values.global.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.global.autoscaling.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ template "itxa-chart.fullname" . }}-itxauiserver
+  targetCPUUtilizationPercentage: {{ .Values.global.autoscaling.targetCPUUtilizationPercentage }}
+{{ end -}}

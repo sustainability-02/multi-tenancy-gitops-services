@@ -1,0 +1,65 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+{{- $type := "test-pv" }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-{{ $type }}"
+  annotations:
+    "helm.sh/hook": test-success
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "openshift.io/scc": restricted
+    "productMetric": "VIRTUAL_PROCESSOR_CORE"
+{{- include "sch.metadata.annotations.metering" (list . .sch.chart.metering) | indent 4 }}    
+  labels:
+{{ include "sch.metadata.labels.standard" (list . "" (dict "type" $type)) | indent 4 }}
+spec:
+  affinity:
+{{- include "itxa-chart.nodeaffinity.onlyArch" . | indent 4 }}
+  serviceAccountName: {{ .Values.global.serviceAccountName | default "default" }}
+  hostNetwork: false
+  hostPID: false
+  hostIPC: false
+  securityContext:
+    runAsNonRoot: true
+    {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+    runAsUser: {{ .Values.itxauiserver.runAsUser }}
+    fsGroup: {{ .Values.global.persistence.securityContext.fsGroup | default 0 }}
+    {{- else }}
+    supplementalGroups: [{{ .Values.global.persistence.securityContext.supplementalGroup | default 0 }}]
+    {{- end }}
+{{- if .Values.global.image.pullsecret }}
+  imagePullSecrets:
+  - name: {{ .Values.global.image.pullsecret }}
+  {{- end }}
+  containers:
+  - name: {{ template "itxa-chart.fullname" . }}-{{ $type }}
+    image: "{{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxauiserver.image.name }}:{{ .Values.itxauiserver.image.tag }}"
+    imagePullPolicy: {{ .Values.itxauiserver.image.pullPolicy }}
+    resources:
+{{ toYaml .Values.itxauiserver.resources | indent 6 }}
+    securityContext:
+      privileged: false
+      {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+      runAsUser: {{ .Values.itxauiserver.runAsUser }}
+      {{- end }}
+      readOnlyRootFilesystem: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    command: ["/bin/sh", "-c", "echo 'Testing write into Persistent Volume' | tee test-write-permission && echo 'write successful'"]
+    workingDir: "/logs"
+    volumeMounts:
+    - name: {{ .Values.global.persistence.claims.name }}-common
+      mountPath: "/logs"
+  volumes:
+  - name: {{ .Values.global.persistence.claims.name }}-common
+    persistentVolumeClaim:
+      claimName: {{ .Values.global.persistence.claims.name | lower }}
+  restartPolicy: Never
+  

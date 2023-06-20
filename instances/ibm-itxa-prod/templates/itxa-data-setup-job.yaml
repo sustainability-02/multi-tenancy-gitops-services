@@ -1,0 +1,100 @@
+# Licensed Materials - Property of IBM
+# IBM Transformation Extender Advanced (5724-Q23)
+# (C) Copyright IBM Corp. 2021, 2022 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{ if .Values.global.install.itxadbinit.enabled -}}
+{{- if and (.Values.itxadatasetup.loadFactoryData) (eq .Values.itxadatasetup.loadFactoryData "install") }}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+{{- $dbType := .Values.itxadatasetup.dbType }}
+{{- $deployEDIPack := .Values.itxadatasetup.deployPacks.edi }}
+{{- $deployFSPPack := .Values.itxadatasetup.deployPacks.fsp }}
+{{- $deployHCPack := .Values.itxadatasetup.deployPacks.hc }}
+{{- $tenantId := .Values.itxadatasetup.tenantId }}
+{{- $ignoreVersionWarning := .Values.itxadatasetup.ignoreVersionWarning }}
+{{- $s3host := .Values.global.database.s3host }}
+{{- $bucket := .Values.global.database.s3bucket }}
+{{- $objectKey := .Values.global.database.s3objectkey }}
+{{- $secureDBConnection := .Values.global.secureDBConnection.enabled }}                
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "itxa-chart.fullname" . }}-itxadatasetup
+  labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 4 }}
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 8 }}
+      annotations:
+{{- include "sch.metadata.annotations.metering" (list . .sch.chart.metering) | indent 8 }}
+    spec:
+      affinity:
+{{- include "itxa-chart.nodeaffinity.onlyArch" . | indent 8 }}
+      serviceAccountName: {{ .Values.global.serviceAccountName | default "default" }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+        runAsUser: {{ .Values.itxadbinit.runAsUser }}
+        fsGroup: {{ .Values.global.persistence.securityContext.fsGroup | default 0 }}
+        {{- else }}
+        supplementalGroups: [{{ .Values.global.persistence.securityContext.supplementalGroup | default 0 }}]
+        {{- end }}
+      restartPolicy: "Never"
+      {{- if .Values.global.image.pullsecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.image.pullsecret }}
+      {{- end }}
+      containers:
+        - name: {{ template "itxa-chart.fullname" . }}-itxadatasetup
+          image: >-
+              {{- if .Values.itxadbinit.image.digest }}
+              {{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxadbinit.image.name }}@{{ .Values.itxadbinit.image.digest }}
+              {{- else }}
+              {{ regexReplaceAll "(^cp\\.(stg\\.)?icr\\.io/)" .Values.global.image.repository "${1}cp/" }}/{{ .Values.itxadbinit.image.name }}:{{ .Values.itxadbinit.image.tag }}
+              {{- end }}
+          imagePullPolicy: {{ .Values.itxadbinit.image.pullPolicy }}
+          securityContext:
+            privileged: false
+            runAsNonRoot: true
+            {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+            runAsUser: {{ .Values.itxadbinit.runAsUser }}
+            {{- end }}
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+          command: ["/bin/bash", "-c"]
+          args:
+          - "/opt/IBM/$SPE_VERSION/bin/processcerts.sh && /opt/IBM/$SPE_VERSION/bin/executeAll.sh --DBTYPE={{ $dbType }} --deployEDIPack={{ $deployEDIPack }} --deployFSPPack={{ $deployFSPPack }} --deployHCPack={{ $deployHCPack }} --tenantId={{ $tenantId }} --ignoreVersionWarning={{ $ignoreVersionWarning }} --s3host={{ $s3host }} --bucket={{ $bucket }} --objectKey={{ $objectKey }} --secureDBConnection={{ $secureDBConnection }} && touch /opt/IBM/logs/db/itxadatasetup.complete && while true; do sleep 30; done;"
+          envFrom:
+          - configMapRef:
+              name: itxa-config
+          - secretRef:
+              name: {{ .Values.global.appSecret }}
+          volumeMounts:
+                {{- if and $secureDBConnection .Values.global.secureDBConnection.dbservercertsecretname }}
+            - name: importdbservercert
+              mountPath: "/config/security/importeddbservercert"
+              readOnly: true
+                {{- end }}    
+            - name: itxadatasetuplog
+              mountPath: /opt/IBM/logs/db
+      volumes:   
+            {{- if and $secureDBConnection .Values.global.secureDBConnection.dbservercertsecretname }}
+        - name: importdbservercert
+          secret:
+            secretName: {{ .Values.global.secureDBConnection.dbservercertsecretname }}
+            {{- end }}
+              
+        - name: itxadatasetuplog
+          persistentVolumeClaim:
+            claimName: {{ .Values.global.persistence.claims.name  | lower }}        
+{{- end }}
+{{- end }}

@@ -1,0 +1,37 @@
+Please wait while the application is getting deployed.
+
+{{- if .Values.global.install.itxaUI.enabled }}  
+ITXA UI Server would take 1 to 2 minutes to be in Ready state.
+1. Run the below command to check the status of ITXA UI application server.
+  oc get all -l release={{ .Release.Name }},role=itxauiserver -n {{ .Release.Namespace }}
+  Run the below command to get the status of pods
+  oc get pods -l release={{ .Release.Name }},role=itxauiserver -n {{ .Release.Namespace }} -o wide
+{{- end }}
+
+
+{{- if .Values.global.install.itxaUI.enabled }}
+2. Access the ITXA UI Server by running the following url
+{{- if .Values.itxauiserver.ingress.enabled }}
+{{- $contextList := .Values.itxauiserver.ingress.contextRoots | default (list "spe") -}}
+{{- if .Values.itxauiserver.ingress.host }}
+{{- if .Values.itxauiserver.ingress.ssl.enabled }}
+{{ include "itxa-chart.ingress.paths.notes" (list . (printf "https://%s" .Values.itxauiserver.ingress.host) $contextList) | indent 2 }}
+{{- else }}
+{{ include "itxa-chart.ingress.paths.notes" (list . (printf "http://%s" .Values.itxauiserver.ingress.host) $contextList) | indent 2 }}
+  echo "Warning: It is recommended to enable SSL"
+{{- end }}  
+{{- else }}
+{{- if .Values.itxauiserver.ingress.ssl.enabled }}
+{{ include "itxa-chart.ingress.paths.notes" (list . (printf "https://%s" "<proxy node domain>") $contextList) | indent 2 }}
+{{- else }}
+{{ include "itxa-chart.ingress.paths.notes" (list . (printf "http://%s" "<proxy node domain>") $contextList) | indent 2 }}
+  echo "Warning: It is recommended to enable SSL"
+{{- end }}
+{{- end }}
+{{- else if contains "NodePort" .Values.itxauiserver.service.type }}
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[1].nodePort}" services {{ template "itxa-chart.fullname" . }})
+  echo "ITXAUIServerTest : https://$NODE_IP:$NODE_PORT/ITXAUIServerTest"
+  echo "Warning: It is recommended to avoid NodePort service, instead Ingress should be enabled with ClusterIP service."
+{{- end }}
+{{- end }}

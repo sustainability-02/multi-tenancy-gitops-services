@@ -1,0 +1,124 @@
+<server description="new server">
+    <!--
+	  Created using Helm Chart
+      ================================================================
+      == OCO Source Materials
+      == (C) Copyright IBM Corporation 2013 All Rights Reserved.
+      == US Government Users Restricted Rights - Use, duplication or
+      == disclosure restricted by GSA ADP Schedule Contract with
+      == IBM Corporation.
+      ================================================================
+    -->    
+{{- $varSslEnabled := .Values.itxauiserver.ingress.ssl.enabled }}
+    <!-- Enable features -->
+    <featureManager>
+        <feature>jsp-2.2</feature>
+        <feature>jdbc-4.0</feature>
+    <feature>jpa-2.0</feature>
+        <feature>localConnector-1.0</feature>
+    </featureManager>
+
+{{- if and $varSslEnabled .Values.itxauiserver.ingress.host }}
+	<featureManager>
+	    <feature>ssl-1.0</feature>
+        <feature>monitor-1.0</feature>
+        <feature>transportSecurity-1.0</feature>
+	</featureManager>
+    <httpSession invalidateOnUnauthorizedSessionRequestException="true" />
+    <httpOptions removeServerHeader="true"/>	
+    <sslDefault sslRef="defaultSSLSettings" />
+    <ssl id="defaultSSLSettings" sslProtocol="TLSv1.2" keyStoreRef="defaultKeyStore" trustStoreRef="defaultTrustStore" clientAuthenticationSupported="true" />
+    <keyStore id="defaultKeyStore" type="PKCS12" password="${env.tlskeystorepassword}" location="/opt/ibm/wlp/output/defaultServer/resources/security/key.p12"/>
+    <keyStore id="defaultTrustStore" type="PKCS12" password="${env.tlskeystorepassword}" location="/home/default/trustStore.p12"/>
+    <httpSession cookieSecure="true"/>
+{{- end }}
+
+	<httpEndpoint id="defaultHttpEndpoint" host="*" httpPort={{ .Values.itxauiserver.service.http.port | default 9080 | quote }} httpsPort={{ .Values.itxauiserver.service.https.port | default 9443 | quote }} />
+    <httpSession idReuse="false" cookieName="JSESSIONIDSPE" rewriteId="jsessionidspe" allowOverflow="true" invalidationTimeout="3600"/> 
+
+	{{- if eq (.Values.global.database.dbvendor | lower) "derby" }}
+	<!-- Derby -->
+    <dataSource id="tenx" jndiName="jdbc/tenx">
+        <jdbcDriver libraryRef="DerbyLib"/>
+        <properties.derby.client createDatabase="false" databaseName="@databaseName@" password="@dbPassword@" portNumber="@dbPort@" serverName="@dbHostIp@" shutdownDatabase="false" user="@dbUser@"/>
+    </dataSource>
+    <library id="DerbyLib" name="DerbyLib"> 
+        <fileset dir="/opt/ibm/wlp/usr/servers/defaultServer/lib/spe" includes="derbyclient.jar"/>
+    </library>
+	{{- end }}
+	
+	{{- if eq (.Values.global.database.dbvendor | lower) "db2" }}
+	<!--DB2-->
+	<dataSource id="tenx" jndiName="jdbc/tenx">
+		<jdbcDriver libraryRef="DB2Lib"/>
+		{{- if eq (.Values.global.secureDBConnection.enabled) false }}
+		<properties.db2.jcc  createDatabase="false" databaseName="@databaseName@" password="@dbPassword@" portNumber="@dbPort@" serverName="@dbHostIp@" shutdownDatabase="false" user="@dbUser@"/>
+		{{- end }}
+		{{- if and .Values.global.secureDBConnection.enabled .Values.global.secureDBConnection.dbservercertsecretname }}
+		<properties.db2.jcc  createDatabase="false" databaseName="@databaseName@" password="@dbPassword@" portNumber="@dbPort@" serverName="@dbHostIp@" shutdownDatabase="false" user="@dbUser@" sslConnection="true"/>
+		{{- end }}
+	</dataSource>
+	<library id="DB2Lib" name="DB2Lib">
+		<fileset dir="${server.config.dir}/apps/spe.war/WEB-INF/lib" includes="@jdbcDirverJar@"/>
+	</library>
+	{{- end }}
+	
+	{{- if eq (.Values.global.database.dbvendor | lower) "oracle" }}
+	<!--DB2-->
+	<dataSource id="tenx" jndiName="jdbc/tenx">
+		<jdbcDriver libraryRef="OracleLib"/>
+		{{- if eq (.Values.global.secureDBConnection.enabled) false }}
+		<properties.oracle URL="jdbc:oracle:thin:@@dbHostIp@:1521/@databaseName@" serverName="@dbHostIp@" portNumber="@dbPort@" user="@dbUser@" password="@dbPassword@"/>
+		{{- end }}
+		{{- if and .Values.global.secureDBConnection.enabled .Values.global.secureDBConnection.dbservercertsecretname }}
+		<properties.oracle URL="jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=@dbHostIp@)(PORT=@dbPort@))(CONNECT_DATA=(SERVICE_NAME=@databaseName@)))" serverName="@dbHostIp@" portNumber="@dbPort@" user="@dbUser@" password="@dbPassword@"/>
+		{{- end }}
+	</dataSource>
+	<library id="OracleLib" name="OracleLib">
+		<fileset dir="${server.config.dir}/apps/spe.war/WEB-INF/lib" includes="@jdbcDirverJar@"/>
+	</library>
+
+	{{- end }}
+	
+	{{- if eq (.Values.global.database.dbvendor | lower) "mssql" }}
+	<!--DB2-->
+	<dataSource id="tenx" jndiName="jdbc/tenx">
+	  <jdbcDriver libraryRef="MSJDBCLib"/>
+	  <properties.microsoft.sqlserver databaseName="@databaseName@" portNumber="@dbPort@" serverName="@dbHostIp@" user="@dbUser@" password="@dbPassword@" trustServerCertificate="true"/>
+	</dataSource>
+	<library id="MSJDBCLib">
+	  <fileset dir="${server.config.dir}/apps/spe.war/WEB-INF/lib" includes="@jdbcDirverJar@"/>
+	</library>
+	{{- end }}	
+	
+    <applicationMonitor updateTrigger="mbean"/>
+    <config updateTrigger="disabled"/>
+
+    <application id="spe" location="spe.war" name="spe" type="war">
+        <classloader>
+            <privateLibrary>
+                <fileset dir="${server.config.dir}/lib/spe" includes="*.jar"/>
+                <!--
+                If you install WTX after you install SPE,
+                please execute the following steps under the lib dir:
+                1. Remove the wtx empty dir
+                2. Create the wtx link as follows:
+                    Windows:    mklink /d wtx \path\to\wtx
+                    UNIX:       ln -sf /path/to/wtx/libs wtx
+					@httpPort@
+                -->
+                <fileset dir="${server.config.dir}/lib/wtx" includes="*.jar"/>
+            </privateLibrary>
+        </classloader>
+    </application>
+
+    <logging messageFileName="@POD_HOSTNAME@_messages.log"
+             traceFileName="@POD_HOSTNAME@_trace.log"
+             consoleLogLevel="INFO"
+             copySystemStreams="false"
+             traceSpecification="*=info:com.ibm.tenx.*=fine:openjpa.jdbc.SQL=fine"/>
+
+    <!-- RTC#59283 - load the servlet on startup to start sending heart beat events. -->
+    <webContainer deferServletLoad="false"/>
+    <webContainer stopappstartuponlistenerexception="true"/>
+</server>

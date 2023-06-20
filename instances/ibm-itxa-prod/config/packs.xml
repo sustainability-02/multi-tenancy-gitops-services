@@ -1,0 +1,61 @@
+{{- $edi := .Values.itxadatasetup.deployPacks.edi }}
+{{- $hc := .Values.itxadatasetup.deployPacks.hc }}
+{{- $fsp := .Values.itxadatasetup.deployPacks.fsp }}
+<PACKS>
+{{- if and (eq $edi false) (eq $hc false) (eq $fsp false) }}
+	<!-- This section is to indicate that no SPE packs are configured -->
+	<!--NO_PACKS_BEGIN-->
+	<PACK displayname="No packs configured" name="NONE" industry="NONE" package="com.ibm.spe.ui.unknown"/>
+	<INDUSTRY name="NONE" displayname="NONE"/>
+	<!--NO_PACKS_END-->
+
+	<!-- This section is used to support both EDI and Healthcare packs -->
+{{- else if and $edi $hc}}
+	<!--EDI_HC_PACKS_BEGIN-->
+	<PACK displayname="EDIFACT" name="EDIFACT" industry="EDI" package="com.ibm.spe.ui.edifact"/>
+	<PACK displayname="ASC X12/HIPAA" name="X12" industry="EDI" package="com.ibm.spe.ui.x12"/>
+	<PACK displayname="TRADACOMS" name="TRADACOMS" industry="EDI" package="com.ibm.spe.ui.tradacoms"/>
+	<PACK displayname="RND" name="RND" industry="AUTO" package="com.ibm.spe.ui.rnd"/>
+
+	<INDUSTRY name="EDI" displayname="EDI"/>
+	<INDUSTRY name="AUTO" displayname="Automotive"/>
+	<MODULE name="Business Rules" enabled="true"/>
+<!--EDI_HC_PACKS_END-->
+
+{{- else if $hc }}
+	<!-- This section is used to support Healthcare pack only -->
+	<!--HC_PACK_BEGIN-->
+	<PACK displayname="HIPAA" name="X12" industry="HEALTHCARE" package="com.ibm.spe.ui.x12"/>
+
+	<INDUSTRY name="HEALTHCARE" displayname="Healthcare"/>
+	<MODULE name="Business Rules" enabled="true"/>
+	<!--HC_PACK_END-->
+
+
+{{- else if $edi }}
+	<!-- This section is used to support EDI pack only -->
+	<!--EDI_PACK_BEGIN -->
+	<PACK displayname="EDIFACT" name="EDIFACT" industry="EDI" package="com.ibm.spe.ui.edifact"/>
+	<PACK displayname="ASC X12" name="X12" industry="EDI" package="com.ibm.spe.ui.x12"/>	
+	<PACK displayname="TRADACOMS" name="TRADACOMS" industry="EDI" package="com.ibm.spe.ui.tradacoms"/>
+	<PACK displayname="RND" name="RND" industry="AUTO" package="com.ibm.spe.ui.rnd"/>
+
+	<INDUSTRY name="EDI" displayname="EDI"/>
+	<INDUSTRY name="AUTO" displayname="Automotive"/>
+	<!--EDI_PACK_END-->
+
+{{- end}}
+
+{{- if $fsp }}
+	<!-- This section is used to support Financial Services Payments pack -->
+	<!--FSP_PACK_BEGIN-->
+	<PACK displayname="ISO20022/SWIFT" name="SWIFT" industry="FINANCIAL" package="com.ibm.spe.ui.swift"/>
+
+	<INDUSTRY name="FINANCIAL" displayname="Financial"/>
+	<!--FSP_PACK_END-->
+{{- end }}
+
+<!-- This section is used to support Generic XML processing. -->
+	<PACK displayname="Generic XML" name="GenericXML" industry="ANY" package="com.ibm.spe.ui.genericxml"/>
+	<INDUSTRY name="ANY" displayname="Any"/>
+</PACKS>

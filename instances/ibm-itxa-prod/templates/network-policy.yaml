@@ -1,0 +1,23 @@
+# Licensed Materials - Property of IBM
+# IBM Order Management Software (5725-D10)
+# (C) Copyright IBM Corp. 2018, 2020 All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+{{- include "itxa-chart.licenseValidate" . | required "License must be accepted by setting license key to true" }}
+{{ if not (lookup "networking.k8s.io/v1" "NetworkPolicy" .Release.Namespace "itxa-network-policy") }}
+{{- include "sch.config.init" (list . "itxa-chart.sch.chart.config.values") }}
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: "itxa-network-policy"
+  labels:
+{{ include "sch.metadata.labels.standard" (list .) | indent 4 }}
+    itxa: donotchange
+spec:
+  podSelector:
+    matchExpressions:
+    -  {key: role, operator: In, values: [itxaUI, itxadbinit]}
+  ingress:
+  - from: []
+  policyTypes:
+  - Ingress
+{{ end }}
