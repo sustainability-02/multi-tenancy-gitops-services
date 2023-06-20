@@ -4,7 +4,7 @@ metadata:
   name: lw-db2
 spec:
   selector:
-    app: lw-app
+    app: ibm-sfg-db2-0
   ports:
     - protocol: TCP
       port: 50000
