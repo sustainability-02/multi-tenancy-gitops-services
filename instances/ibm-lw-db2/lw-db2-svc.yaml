@@ -3,11 +3,10 @@ kind: Service
 metadata:
   name: lw-db2
 spec:
-  clusterIP: 172.21.153.242
   selector:
     app: lw-app
   ports:
     - protocol: TCP
       port: 50000
       targetPort: 50000
-  clusterIP: None
+  clusterIP: 172.21.63.66
