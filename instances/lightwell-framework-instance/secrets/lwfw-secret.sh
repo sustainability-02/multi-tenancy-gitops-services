@@ -12,7 +12,7 @@ oc create secret generic lw-app-prop \
 --dry-run=client -o yaml > delete-lw-app-prop-secret.yaml
 
 # Encrypt the secret using kubeseal and private key from the cluster
-kubeseal -n tools --controller-name=${SEALED_SECRET_CONTOLLER_NAME} --controller-namespace=${SEALED_SECRET_NAMESPACE} -o yaml < delete-lw-app-prop-secret.yaml > lw-app-prop-secret.yaml
+kubeseal -n b2bi-prod --controller-name=${SEALED_SECRET_CONTOLLER_NAME} --controller-namespace=${SEALED_SECRET_NAMESPACE} -o yaml < delete-lw-app-prop-secret.yaml > lw-app-prop-secret.yaml
 
 # NOTE, do not check delete-lw-app-prop.yaml into git!
 #rm delete-lw-app-prop.yaml
