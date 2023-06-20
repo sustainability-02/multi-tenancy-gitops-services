@@ -3,6 +3,6 @@ resources:
   - secrets/itxa-mssql-sg.yaml
   - secrets/itxa-oracle-sc.yaml
   - secrets/itxa-user.yaml
-  - secrets/itxa-keystore.yaml
+  - secrets/tls-keystore.yaml
   - storage/itxa-pv.yaml
   - storage/itxa-pvc.yaml
