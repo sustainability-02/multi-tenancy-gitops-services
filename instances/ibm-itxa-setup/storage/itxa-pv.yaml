@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: itxa-pv-sc
+  annotations:
+    argocd.argoproj.io/sync-wave: "255"
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 12Gi
+  nfs:
+    path: /NFSSHARE1
+    server: 9.X0.2X.8XX
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: managed-nfs-storage

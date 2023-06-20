@@ -1,0 +1,17 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: itxa-nfs-claim
+  annotations:
+    argocd.argoproj.io/sync-wave: "275"
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: managed-nfs-storage
+  volumeName: itxa-pv-sc
+
+
+
