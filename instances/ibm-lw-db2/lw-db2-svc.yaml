@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: lw-db2
 spec:
+  clusterIP: 172.21.153.242
   selector:
     app: lw-app
   ports:
