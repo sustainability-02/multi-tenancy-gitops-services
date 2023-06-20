@@ -39,6 +39,8 @@ spec:
                 items:
                   - key: LwEncryption.jar
                     path: LwEncryption.jar
+                  # - key: customer_LW_license.properties
+                  #   path: customer_LW_license.properties
         - name: lw-data
           persistentVolumeClaim:
             claimName: lwfw-files
