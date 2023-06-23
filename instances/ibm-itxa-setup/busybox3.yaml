@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox-deployment
+  labels:
+    app: busybox
+spec:
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+    spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 2000
+    #    runAsNonRoot: false
+      containers:
+      - name: busybox
+        image: IMAGE
+        args: 
+        -  sleep
+        -  "3600"
+        volumeMounts:
+        - mountPath: /vtest
+          name: volume
+      volumes:
+      - name: volume
+        persistentVolumeClaim:
+          claimName: itxa-nfs-claim
+
+
+  
+
