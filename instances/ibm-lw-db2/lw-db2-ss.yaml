@@ -31,7 +31,7 @@ spec:
         - name: ibm-sfg-db2
           securityContext:
             privileged: true
-          image: quay.io/lightwell/lightwell-db2:1.0.2
+          image: http://quay.io/rdecoster/lw-db:v1.2
           imagePullPolicy: IfNotPresent
           env:
             - name: LICENSE
